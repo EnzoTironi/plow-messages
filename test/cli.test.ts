@@ -252,6 +252,25 @@ describe("plow-messages contract", () => {
       expect(stdout).toContain(subcommand);
     }
     expect(stdout).toContain("untrusted input");
+    expect(stdout).toContain("--app");
+    expect(stdout).toContain("whatsapp");
+  });
+
+  itMac("refuses --app after the subcommand, where a phrase could hide it", () => {
+    const { code, stderr } = cli("search", "order", "--app", "whatsapp");
+    expect(code).toBe(2);
+    expect(stderr).toContain("unknown option");
+  });
+
+  itMac("refuses an --app that is not one of the two stores", () => {
+    try {
+      execFileSync(BIN, ["--app", "signal", "chats"], { encoding: "utf8" });
+      expect.unreachable("--app signal should fail");
+    } catch (e) {
+      const err = e as { status: number; stderr: string };
+      expect(err.status).toBe(2);
+      expect(err.stderr).toContain("--app wants imessage or whatsapp");
+    }
   });
 
   itMac("refuses an unknown option rather than silently widening the answer", () => {

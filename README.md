@@ -1,10 +1,12 @@
 # plow-messages
 
 A CLI that reads the owner's iMessage archive (`~/Library/Messages/chat.db`)
-with bodies already decoded, including the messages whose body lives only in
-`attributedBody`, a typedstream blob a plain `select ... from message where
-text like ?` never sees. `plow-messages --help` is the contract; `skill.md` is
-the agent-facing page.
+and WhatsApp archive
+(`~/Library/Group Containers/group.net.whatsapp.WhatsApp.shared/ChatStorage.sqlite`)
+through the same four verbs and the same JSON line. iMessage bodies that live
+only in `attributedBody` are decoded. WhatsApp is `--app whatsapp`, a global
+that belongs before the subcommand. The default is iMessage.
+`plow-messages --help` is the contract; `skill.md` is the agent-facing page.
 
 ## Build & test
 
