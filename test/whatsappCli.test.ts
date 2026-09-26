@@ -20,6 +20,16 @@ const EPOCH = 978307200;
 
 const secs = (ago: number): number => Math.floor(Date.now() / 1000) - ago - EPOCH;
 
+/** `--after`/`--before` take an ISO instant. The suite forces UTC. */
+function isoAgo(ago: number): string {
+  const d = new Date(Date.now() - ago * 1000);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}` +
+    `T${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}+00:00`
+  );
+}
+
 function makeStore(dir: string): string {
   const store = path.join(dir, "ChatStorage.sqlite");
   const sql = [
@@ -33,6 +43,7 @@ function makeStore(dir: string): string {
     `insert into ZWAMESSAGE (ZMESSAGEDATE, ZTEXT, ZCHATSESSION, ZISFROMME) values (${secs(3000)}, 'from you about dinner', 1, 1);`,
     `insert into ZWAMESSAGE (ZMESSAGEDATE, ZTEXT, ZCHATSESSION, ZISFROMME) values (${secs(1000)}, 'their dinner reply', 1, 0);`,
     `insert into ZWAMESSAGE (ZMESSAGEDATE, ZTEXT, ZCHATSESSION, ZISFROMME, ZGROUPMEMBER) values (${secs(500)}, 'from the club', 2, 0, 1);`,
+    `insert into ZWAMESSAGE (ZMESSAGEDATE, ZTEXT, ZCHATSESSION, ZISFROMME, ZGROUPMEMBER) values (${secs(800)}, 'don''t forget the cake', 2, 0, 1);`,
     `insert into ZWAMESSAGE (ZMESSAGEDATE, ZTEXT, ZCHATSESSION, ZISFROMME) values (${secs(4000)}, 'old inbound', 3, 0);`,
     `insert into ZWAMESSAGE (ZMESSAGEDATE, ZTEXT, ZCHATSESSION, ZISFROMME) values (${secs(2000)}, 'you already answered', 3, 1);`,
   ].join("\n");
@@ -104,6 +115,23 @@ describe("plow-messages --app whatsapp", () => {
     expect(ids).toContain("15551234@s.whatsapp.net");
     expect(ids).not.toContain("15557777@s.whatsapp.net");
     expect(ids).not.toContain("99887@g.us");
+  });
+
+  itMac("keeps an apostrophe inside the bound phrase", () => {
+    const rows = cli("search", "don't").rows;
+    expect(rows.map((r) => r.body)).toEqual(["don't forget the cake"]);
+    expect(rows[0]?.sender).toBe("15559999@s.whatsapp.net");
+  });
+
+  itMac("applies --after and --before as unix seconds, not nanoseconds", () => {
+    const newer = cli("search", "--after", isoAgo(1500)).rows.map((r) => r.body);
+    expect(newer).toEqual(expect.arrayContaining(["their dinner reply", "from the club", "don't forget the cake"]));
+    expect(newer).not.toContain("from you about dinner");
+    const older = cli("search", "--before", isoAgo(2500)).rows.map((r) => r.body);
+    expect(older).toContain("from you about dinner");
+    expect(older).not.toContain("their dinner reply");
+    const dated = cli("search", "dinner").rows[0];
+    expect(String(dated?.at)).toMatch(new RegExp("^" + new Date().getUTCFullYear()));
   });
 
   itMac("accepts --store before --app, still as globals", () => {
