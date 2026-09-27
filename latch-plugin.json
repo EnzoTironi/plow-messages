@@ -1,6 +1,6 @@
 {
   "name": "messages",
-  "title": "iMessage history",
+  "title": "Messages history",
   "version": "<ver>",
   "command": "plow-messages",
   "runtime": {

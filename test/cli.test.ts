@@ -262,6 +262,13 @@ describe("plow-messages contract", () => {
     expect(stderr).toContain("unknown option");
   });
 
+  itMac("keeps omitted --app compatible with explicit imessage", () => {
+    const implicit = cli("search", "order");
+    expect(implicit.code).toBe(0);
+    expect(implicit.rows.length).toBeGreaterThan(0);
+    expect(cli("--app", "imessage", "search", "order")).toEqual(implicit);
+  });
+
   itMac("refuses an --app that is not one of the two stores", () => {
     try {
       execFileSync(BIN, ["--app", "signal", "chats"], { encoding: "utf8" });
